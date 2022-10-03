@@ -12,7 +12,7 @@ fi
 
 SDKMAN_BASE=$HOME/.sdkman/candidates/java
 
-JAVA_8_VERSION="8.0.332-tem"
+JAVA_8_VERSION="8.0.333.fx-librca"
 JAVA_11_VERSION="11.0.15-tem"
 JAVA_17_VERSION="17.0.3-tem"
 JAVA_18_VERSION="18.0.1-tem"
