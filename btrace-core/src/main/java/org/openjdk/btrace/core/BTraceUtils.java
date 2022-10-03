@@ -924,6 +924,14 @@ public class BTraceUtils {
     Reflective.printFields(obj, classNamePrefix);
   }
 
+  public static void printDetailedFields(Object obj) {
+    Reflective.printDetailedFields(obj);
+  }
+
+  public static void printDetailedArgs(AnyType[] args) {
+    Reflective.printDetailedArgs(args);
+  }
+
   /**
    * Print all static fields of the class as name-value pairs. Includes the inherited fields as
    * well.
@@ -3053,7 +3061,7 @@ public class BTraceUtils {
             });
   }
 
-  private static Field[] getAllFields(Class<?> clazz) {
+  public static Field[] getAllFields(Class<?> clazz) {
     return AccessController.doPrivileged(
         (PrivilegedAction<Field[]>)
             () -> {
@@ -3069,8 +3077,8 @@ public class BTraceUtils {
             });
   }
 
-  private static void addFieldValues(
-      StringBuilder buf, Object obj, Class<?> clazz, boolean classNamePrefix) {
+  public static void addFieldValues(
+      StringBuilder buf, Object obj, Class<?> clazz, boolean classNamePrefix, boolean typeNamePrefix) {
     Field[] fields = getAllFields(clazz);
     for (Field f : fields) {
       int modifiers = f.getModifiers();
@@ -3078,6 +3086,9 @@ public class BTraceUtils {
         if (classNamePrefix) {
           buf.append(f.getDeclaringClass().getName());
           buf.append('.');
+        }
+        if (typeNamePrefix){
+          buf.append(f.getType() + " ");
         }
         buf.append(f.getName());
         buf.append('=');
@@ -3091,7 +3102,36 @@ public class BTraceUtils {
     }
     Class<?> sc = clazz.getSuperclass();
     if (sc != null) {
-      addFieldValues(buf, obj, sc, classNamePrefix);
+      addFieldValues(buf, obj, sc, classNamePrefix, typeNamePrefix);
+    }
+  }
+
+  private static void addDetailedFieldValues(
+          StringBuilder buf, Object obj, Class<?> clazz) {
+    Field[] fields = getAllFields(clazz);
+    for (Field f : fields) {
+      try {
+        FieldDetailed fieldDetailed = new FieldDetailed(f.getType().getName(), f.getType().isPrimitive(), f.get(obj));
+        buf.append(fieldDetailed.toString());
+      } catch (IllegalAccessException exp) {
+        throw translate(exp);
+      }
+      buf.append(", ");
+    }
+    Class<?> sc = clazz.getSuperclass();
+    if (sc != null) {
+      addDetailedFieldValues(buf, obj, sc);
+    }
+  }
+
+  private static void addDetailedArgValues(
+          StringBuilder buf, AnyType[] args) {
+    for (AnyType arg : args) {
+      if(arg == null)
+        continue;
+      FieldDetailed fieldDetailed = new FieldDetailed(arg.getClass().getName(), arg.getClass().isPrimitive(), arg);
+      buf.append(fieldDetailed.toString());
+      buf.append(", ");
     }
   }
 
@@ -3126,6 +3166,74 @@ public class BTraceUtils {
       return (RuntimeException) exp;
     } else {
       return new RuntimeException(exp);
+    }
+  }
+
+  public static class FieldDetailed {
+
+    String type;
+    Boolean isInterface;
+    Boolean isPrimitive;
+    Object object;
+    String fields;
+
+    public FieldDetailed(String type, Boolean isPrimitive, Object object){
+      this.type = type;
+      this.isPrimitive = isPrimitive;
+      this.isInterface = !isPrimitive;
+      if(object != null) {
+        this.object = object;
+        if (isString(type)) {
+          this.object = '"' + object.toString() + '"';
+        }
+        if (!isPrimitiveTypes(type)) {
+          StringBuilder buffer = new StringBuilder();
+          addFieldValues(buffer, object, object.getClass(), false, true);
+          this.fields = buffer.toString();
+        } else {
+          this.fields = "";
+        }
+      }
+    }
+
+    private boolean isString(String type) {
+      if (type == "java.lang.String")
+        return true;
+      return false;
+    }
+    private boolean isPrimitiveTypes(String type){
+      if (type == null || type == "" || type == "null")
+        return true;
+      if (type == "java.lang.String")
+        return true;
+      if (type == "java.lang.Integer")
+        return true;
+      if (type == "java.lang.Long")
+        return true;
+      if (type == "java.lang.Short")
+        return true;
+      if (type == "java.lang.Float")
+        return true;
+      if (type == "java.lang.Double")
+        return true;
+      if (type == "java.lang.Byte")
+        return true;
+      if (type == "java.lang.AtomicLong")
+        return true;
+      if (type == "java.lang.AtomicInteger")
+        return true;
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      return "{\n"
+              + "    type: " + type + "\n"
+              + "    isPrimitive: " + isPrimitive + "\n"
+              + "    isInterface: " + isInterface + "\n"
+              + "    object: " + object + "\n"
+              + "    fields: [" + fields + "]\n"
+              + "}";
     }
   }
 
@@ -5756,7 +5864,7 @@ public class BTraceUtils {
      * @param obj Object whose fields are printed.
      */
     public static void printFields(Object obj) {
-      printFields(obj, false);
+      printFields(obj, false, false);
     }
 
     /**
@@ -5767,11 +5875,32 @@ public class BTraceUtils {
      * @param obj Object whose fields are printed.
      * @param classNamePrefix flag to tell whether to prefix field names names by class name or not.
      */
+
     public static void printFields(Object obj, boolean classNamePrefix) {
+      printFields(obj, classNamePrefix, false);
+    }
+
+    public static void printFields(Object obj, boolean classNamePrefix, boolean typeNamePrefix) {
       StringBuilder buf = new StringBuilder();
       buf.append('{');
-      addFieldValues(buf, obj, obj.getClass(), classNamePrefix);
+      addFieldValues(buf, obj, obj.getClass(), classNamePrefix, typeNamePrefix);
       buf.append('}');
+      println(buf.toString());
+    }
+
+    public static void printDetailedFields(Object obj){
+      StringBuilder buf = new StringBuilder();
+      buf.append('[');
+      addDetailedFieldValues(buf, obj, obj.getClass());
+      buf.append(']');
+      println(buf.toString());
+    }
+
+    public static void printDetailedArgs(AnyType[] args){
+      StringBuilder buf = new StringBuilder();
+      buf.append('[');
+      addDetailedArgValues(buf, args);
+      buf.append(']');
       println(buf.toString());
     }
 
