@@ -9,17 +9,9 @@ buildscript {
     }
 }
 
-sourceSets {
-    java11_dummy {
-        java {
-            srcDirs = ['src/main/java11_dummy']
-        }
-    }
-}
-
 dependencies {
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.3'
     implementation group: 'org.ow2.asm', name: 'asm', version: "${rootProject.asmVersion}"
     implementation group: 'org.ow2.asm', name: 'asm-tree', version: "${rootProject.asmVersion}"
     implementation group: 'com.google.auto.service', name: 'auto-service', version: '1.0.1'
@@ -31,19 +23,11 @@ dependencies {
     implementation project(':btrace-statsd')
 
     // https://mvnrepository.com/artifact/org.jctools/jctools-core
-    implementation(group: 'org.jctools', name: 'jctools-core', version: '3.3.0')
+    implementation(group: 'org.jctools', name: 'jctools-core', version: '4.0.1')
 
     testImplementation project(':btrace-client')
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.8.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.1")
     testImplementation group: 'org.ow2.asm', name: 'asm-util', version: "${rootProject.asmVersion}"
-}
-
-compileJava11_dummyJava {
-    sourceCompatibility = 8
-    targetCompatibility = 8
-    options.fork = true
-    options.forkOptions.executable = "${project.property("JAVA_11_HOME")}/bin/javac"
-    options.forkOptions.javaHome = file("${project.property("JAVA_11_HOME")}")
 }
 
 compileTestJava {
@@ -54,7 +38,7 @@ compileTestJava {
 }
 
 task compileTestProbes {
-    dependsOn compileTestJava, compileJava11_dummyJava
+    dependsOn compileTestJava
     doLast {
         def path = project(':btrace-instr').sourceSets.main.runtimeClasspath
 
@@ -74,19 +58,8 @@ task compileTestProbes {
     }
 }
 
-task buildEventsJar(type: Jar) {
-    inputs.files compileJava11_dummyJava
-    from files("${project.buildDir}/classes/java/java11_dummy")
-    archiveBaseName = "events"
-    archiveVersion = ""
-    archiveClassifier = ""
-}
-
 test {
-    onlyIf {
-        new File("${projectDir}/../btrace-dist/build/resources/main/v${project.version}/libs/btrace-client.jar").exists()
-    }
-    dependsOn cleanTest, buildEventsJar
+    dependsOn cleanTest
     inputs.files compileTestProbes.outputs
     //inputs.files buildDTrace.outputs
     testLogging.showStandardStreams = true

@@ -22,7 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package org.openjdk.btrace;
+package tests;
+
+import org.junit.jupiter.api.Assertions;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -46,7 +48,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.Assertions;
 
 /** @author Jaroslav Bachorik */
 @SuppressWarnings("ConstantConditions")
@@ -84,35 +85,38 @@ public abstract class RuntimeTest {
         BTraceFunctionalTests.class
             .getClassLoader()
             .getResource("org/openjdk/btrace/instr/Instrumentor.class");
-    try {
-      File f = new File(url.toURI());
-      while (f != null) {
-        if (f.getName().equals("build") || f.getName().equals("out")) {
-          break;
-        }
-        f = f.getParentFile();
-      }
-      if (f != null) {
-        projectRoot = f.getAbsoluteFile().toPath().resolve("../..");
-        Path clientJarPath =
-            projectRoot
-                .resolve("btrace-dist/build/resources/main")
-                .resolve("v" + System.getProperty("project.version"))
-                .resolve("libs/btrace-client.jar");
-        Path eventsJarPath = projectRoot.resolve("btrace-instr/build/libs/events.jar");
-        clientClassPath = clientJarPath.toString();
-        eventsClassPath = eventsJarPath.toString();
-        // client jar needs to take precedence in order for the agent.jar inferring code to work
-        cp =
-            clientJarPath
-                + File.pathSeparator
-                + projectRoot.resolve("btrace-instr/build/classes/java/test");
-      }
-      Assertions.assertNotNull(projectRoot);
-      Assertions.assertNotNull(clientClassPath);
-    } catch (URISyntaxException e) {
-      throw new Error(e);
+    String path = url.toString();
+    path = path.replace("jar:file:", "");
+    int idx = path.indexOf('!');
+    if (idx > -1) {
+      path = path.substring(0, idx);
     }
+    File f = new File(path);
+    while (f != null) {
+      if (f.getName().equals("build") || f.getName().equals("out")) {
+        break;
+      }
+      f = f.getParentFile();
+    }
+    if (f != null) {
+      projectRoot = f.getAbsoluteFile().toPath().resolve("../..");
+      Path clientJarPath =
+          projectRoot
+              .resolve("btrace-dist/build/resources/main")
+              .resolve("v" + System.getProperty("project.version"))
+              .resolve("libs/btrace-client.jar");
+      Path eventsJarPath = projectRoot.resolve("integration-tests/build/libs/events.jar");
+      clientClassPath = clientJarPath.toString();
+      eventsClassPath = eventsJarPath.toString();
+      // client jar needs to take precedence in order for the agent.jar inferring code to work
+      cp =
+          clientJarPath
+              + File.pathSeparator
+              + projectRoot.resolve("integration-tests/build/classes/java/test");
+    }
+    Assertions.assertNotNull(projectRoot);
+    Assertions.assertNotNull(clientClassPath);
+
     String toolsjar = null;
 
     String jHome = System.getenv("TEST_JAVA_HOME");
@@ -188,6 +192,7 @@ public abstract class RuntimeTest {
       jfrFile = Files.createTempFile("btrace-", ".jfr").toString();
       args.add("-XX:StartFlightRecording=settings=default,dumponexit=true,filename=" + jfrFile);
     }
+    args.add("-Dbtrace.test=test");
     args.add(testApp);
 
     ProcessBuilder pb = new ProcessBuilder(args);
@@ -262,10 +267,23 @@ public abstract class RuntimeTest {
       Process client = attach(pid, testScript, cmdArgs, checkLines, stdout, stderr);
 
       System.out.println("Detached.");
-      pw.println("done");
-      pw.flush();
 
-      ret.set(client.waitFor());
+      int retries = 10;
+      boolean exitted = false;
+      while (!exitted && retries-- > 0) {
+        pw.println("done");
+        pw.flush();
+        exitted = client.waitFor(1, TimeUnit.SECONDS);
+        if (!exitted) {
+          System.out.println("... retrying ...");
+        }
+      }
+
+      if (!exitted) {
+        client.destroyForcibly();
+      }
+
+      ret.set(exitted ? client.exitValue() : -1);
 
       outT.join();
       errT.join();
@@ -579,7 +597,7 @@ public abstract class RuntimeTest {
   }
 
   public File locateTrace(String trace) {
-    Path start = projectRoot.resolve("btrace-instr/src");
+    Path start = projectRoot.resolve("integration-tests/src");
     AtomicReference<Path> tracePath = new AtomicReference<>();
     try {
       Files.walkFileTree(

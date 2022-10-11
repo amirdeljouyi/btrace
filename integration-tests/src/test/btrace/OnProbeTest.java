@@ -25,57 +25,28 @@
 
 package traces;
 
-import org.openjdk.btrace.core.annotations.*;
-import org.openjdk.btrace.core.types.AnyType;
-import org.openjdk.btrace.core.BTraceUtils;
-import org.openjdk.btrace.core.annotations.Export;
-import static org.openjdk.btrace.core.BTraceUtils.*;
-import static org.openjdk.btrace.core.BTraceUtils.Reflective.*;
+import org.openjdk.btrace.core.annotations.BTrace;
+import org.openjdk.btrace.core.annotations.OnProbe;
+import org.openjdk.btrace.core.annotations.Self;
 
-import dummy.SimplePeriodicEvent;
-import dummy.SimpleEvent;
+import static org.openjdk.btrace.core.BTraceUtils.*;
 
 /**
- *
  * @author Jaroslav Bachorik
  */
-@BTrace(trusted = false)
-public class OnMethodTest {
-    @TLS
-    private static int tls = 10;
-
-    @Export
-    private static long ex = 1;
-
-    private static String var = "none";
-
-    @OnMethod(clazz = "resources.Main", method = "callA")
+@BTrace
+public class OnProbeTest {
+    @OnProbe(name = "noargs", namespace = "org.openjdk.btrace")
     public static void noargs(@Self Object self) {
-        tls++;
-        ex += 1;
-        dump(var + " [this, noargs]");
-        dump("{" + get("id", self) + "}");
-        var = "A";
+        println("[this, noargs]");
     }
 
-    @OnMethod(clazz = "resources.Main", method = "callB")
+    @OnProbe(name = "withargs", namespace = "org.openjdk.btrace")
     public static void args(@Self Object self, int i, String s) {
-        tls -= 1;
-        ex--;
-        dump(var + " [this, args]");
-        var = "B";
-    }
-
-    @OnTimer(500)
-    public static void doRecurrent() {
-        long x = 10;
-        if (timeNanos() > x) {
-            println(x);
-        }
+        dump("[this, args]");
     }
 
     private static void dump(String s) {
         println(s);
-        println("heap:" + Sys.Memory.heapUsage());
     }
 }
