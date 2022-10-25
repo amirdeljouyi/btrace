@@ -956,12 +956,20 @@ public class BTraceUtils {
         Reflective.printDetailedFields(obj);
     }
 
-    public static void printDetailedArgs(AnyType[] args) {
-        Reflective.printDetailedArgs(args);
+    public static void printDetailedArray(String title, AnyType[] arr) {
+        Reflective.printDetailedArray(title, arr);
     }
 
-    public static void printDetailedRet(AnyType ret) {
-        Reflective.printDetailedReturn(ret);
+    public static void printDetailedArray(AnyType[] arr) {
+        Reflective.printDetailedArray(arr);
+    }
+
+    public static void printDetailedObject(String title, AnyType obj) {
+        Reflective.printDetailedObject(title, obj);
+    }
+
+    public static void printDetailedObject(AnyType obj) {
+        Reflective.printDetailedObject(obj);
     }
 
     /**
@@ -3190,7 +3198,7 @@ public class BTraceUtils {
         }
     }
 
-    private static void addDetailedArgValues(
+    private static void addDetailedArrayValues(
             StringBuilder buf, AnyType[] args) {
         for (AnyType arg : args) {
             if (arg == null)
@@ -3201,7 +3209,7 @@ public class BTraceUtils {
         }
     }
 
-    private static void addDetailedRetValues(
+    private static void addDetailedObjectValues(
             StringBuilder buf, AnyType ret) {
         if (ret == null)
             return;
@@ -6005,18 +6013,24 @@ public class BTraceUtils {
             println(buf.toString());
         }
 
-        public static void printDetailedArgs(AnyType[] args) {
+        public static void printDetailedArray(AnyType[] arr) {
+            printDetailedArray("Array", arr);
+        }
+        public static void printDetailedArray(String title, AnyType[] arr) {
             StringBuilder buf = new StringBuilder();
-            buf.append("Args: [");
-            addDetailedArgValues(buf, args);
+            buf.append(title + ": [");
+            addDetailedArrayValues(buf, arr);
             buf.append(']');
             println(buf.toString());
         }
 
-        public static void printDetailedReturn(AnyType ret) {
+        public static void printDetailedObject(AnyType obj) {
+            printDetailedObject("Object", obj);
+        }
+        public static void printDetailedObject(String title, AnyType obj) {
             StringBuilder buf = new StringBuilder();
-            buf.append("Return: ");
-            addDetailedRetValues(buf, ret);
+            buf.append(title + ": ");
+            addDetailedObjectValues(buf, obj);
             println(buf.toString());
         }
 
