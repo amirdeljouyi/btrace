@@ -3277,6 +3277,8 @@ public class BTraceUtils {
                 } else {
                     this.fields = "";
                 }
+            } else {
+                this.fields = "";
             }
         }
 
