@@ -3185,7 +3185,7 @@ public class BTraceUtils {
         Field[] fields = getAllFields(clazz);
         for (Field f : fields) {
             try {
-                FieldDetailed fieldDetailed = new FieldDetailed(f.getName(), f.getType().getName(), f.getType().isPrimitive(), f.get(obj));
+                FieldDetailed fieldDetailed = new FieldDetailed(f.getName(), f.getGenericType().getTypeName(), f.getType().isPrimitive(), f.get(obj));
                 buf.append(fieldDetailed.toString());
             } catch (IllegalAccessException exp) {
                 throw translate(exp);
@@ -3203,7 +3203,7 @@ public class BTraceUtils {
         for (AnyType arg : args) {
             if (arg == null)
                 continue;
-            FieldDetailed fieldDetailed = new FieldDetailed(null, arg.getClass().getName(), arg.getClass().isPrimitive(), arg);
+            FieldDetailed fieldDetailed = new FieldDetailed(null, arg.getClass().getTypeName(), arg.getClass().isPrimitive(), arg);
             buf.append(fieldDetailed.toString());
             buf.append(", ");
         }
