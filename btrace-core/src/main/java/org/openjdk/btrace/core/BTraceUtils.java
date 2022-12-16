@@ -46,6 +46,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+import com.thoughtworks.xstream.converters.ConversionException;
 import jdk.jfr.Event;
 import org.openjdk.btrace.core.aggregation.Aggregation;
 import org.openjdk.btrace.core.aggregation.AggregationFunction;
@@ -2940,6 +2942,10 @@ public class BTraceUtils {
         Export.writeDOT(obj, fileName);
     }
 
+    public static void serializeJSON(Object obj, String prefix) {
+        Export.serializeJSON(obj, prefix);
+    }
+
     // speculative buffer management
 
     /**
@@ -3260,11 +3266,16 @@ public class BTraceUtils {
         Object object;
         String fields;
 
+        String hashCode;
+
+        Boolean serialized = false;
+
         public FieldDetailed(String name, String type, Boolean isPrimitive, Object object) {
             this.name = name;
             this.type = type;
             this.isPrimitive = isPrimitive;
             this.isInterface = !isPrimitive;
+            this.hashCode = Integer.toHexString(identityHashCode(object));
             if (object != null) {
                 this.object = object;
                 if (isString(type)) {
@@ -3274,6 +3285,12 @@ public class BTraceUtils {
                     StringBuilder buffer = new StringBuilder();
                     addFieldValues(buffer, object, object.getClass(), false, true);
                     this.fields = buffer.toString();
+                    try {
+                        serializeJSON(object, null);
+                        this.serialized = true;
+                    } catch (ConversionException e){
+                        this.serialized = false;
+                    }
                 } else {
                     this.fields = "";
                 }
@@ -3312,11 +3329,17 @@ public class BTraceUtils {
             return false;
         }
 
+        public boolean isPrimitiveType() {
+            return isPrimitiveTypes(this.type);
+        }
+
         @Override
         public String toString() {
             return "{\n"
+                    + "    hash: " + hashCode + ",\n"
                     + "    name: " + name + ",\n"
                     + "    type: " + type + ",\n"
+                    + "    serialized: " + serialized + ",\n"
                     + "    isPrimitive: " + isPrimitive + ",\n"
                     + "    isInterface: " + isInterface + ",\n"
                     + "    object: " + object + ",\n"
@@ -6023,6 +6046,7 @@ public class BTraceUtils {
             buf.append(title + ": [");
             addDetailedArrayValues(buf, arr);
             buf.append(']');
+//            serializeJSON(arr, title);
             println(buf.toString());
         }
 
@@ -6033,6 +6057,7 @@ public class BTraceUtils {
             StringBuilder buf = new StringBuilder();
             buf.append(title + ": ");
             addDetailedObjectValues(buf, obj);
+//            serializeJSON(obj, title);
             println(buf.toString());
         }
 
@@ -6108,6 +6133,18 @@ public class BTraceUtils {
          */
         public static void writeDOT(Object obj, String fileName) {
             BTraceRuntime.writeDOT(obj, fileName);
+        }
+
+        public static void serializeJSON(Object obj, String prefix) {
+            if(obj == null)
+                return;
+
+            String fileName = Integer.toHexString(identityHashCode(obj)) + ".json";
+//            String fileName = Integer.toHexString(identityHashCode(obj)) + ".xml"; // xml
+            if(prefix != null)
+                fileName = prefix + fileName;
+
+            BTraceRuntime.serializeJSON(obj, fileName);
         }
     }
 

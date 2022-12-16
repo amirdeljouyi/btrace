@@ -77,6 +77,8 @@ task agentJar(type: ShadowJar) {
     }
 
     configurations = [project.configurations.artifact]
+    relocate 'com.thoughtworks.xstream', 'org.openjdk.btrace.libs.com.thoughtworks.xstream'
+    relocate 'org.codehaus.jettison', 'org.openjdk.btrace.libs.org.codehaus.jettison'
     relocate 'org.jctools', 'org.openjdk.btrace.libs.org.jctools'
     relocate 'org.objectweb.asm', 'org.openjdk.btrace.libs.org.objectweb.asm'
     relocate 'org.slf4j', 'org.openjdk.btrace.libs.org.slf4j'
@@ -118,12 +120,20 @@ task bootJar(type: ShadowJar) {
             }
             return true
         }
+        if (it.path.startsWith('com/thoughtworks/xstream')){
+            return true;
+        }
+        if ( it.path.startsWith('org/codehaus/jettison')){
+            return true;
+        }
         return it.path.startsWith("org/slf4j/") || it.path.startsWith('org/openjdk/btrace/runtime/') ||
                 it.path.startsWith('org/openjdk/btrace/services/') ||
                 it.path.startsWith('org/openjdk/btrace/statsd/')
     }
 
     configurations = [project.configurations.artifact]
+    relocate 'com.thoughtworks.xstream', 'org.openjdk.btrace.libs.com.thoughtworks.xstream'
+    relocate 'org.codehaus.jettison', 'org.openjdk.btrace.libs.org.codehaus.jettison'
     relocate 'org.jctools', 'org.openjdk.btrace.libs.org.jctools'
     relocate 'org.objectweb.asm', 'org.openjdk.btrace.libs.org.objectweb.asm'
     relocate 'org.slf4j', 'org.openjdk.btrace.libs.org.slf4j'
@@ -154,6 +164,8 @@ task clientJar(type: ShadowJar) {
     exclude 'org/openjdk/btrace/agent/**'
 
     configurations = [project.configurations.artifact]
+    relocate 'com.thoughtworks.xstream', 'org.openjdk.btrace.libs.com.thoughtworks.xstream'
+    relocate 'org.codehaus.jettison', 'org.openjdk.btrace.libs.org.codehaus.jettison'
     relocate 'org.jctools', 'org.openjdk.btrace.libs.org.jctools'
     relocate 'org.objectweb.asm', 'org.openjdk.btrace.libs.org.objectweb.asm'
     relocate 'org.slf4j', 'org.openjdk.btrace.libs.org.slf4j'

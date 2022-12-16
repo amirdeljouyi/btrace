@@ -26,12 +26,8 @@
 package org.openjdk.btrace.runtime;
 
 import com.sun.management.HotSpotDiagnosticMXBean;
-import java.io.BufferedInputStream;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+
+import java.io.*;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -74,6 +70,11 @@ import javax.management.NotificationEmitter;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
+
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.converters.reflection.SunUnsafeReflectionProvider;
+import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
+import com.thoughtworks.xstream.security.AnyTypePermission;
 import org.jctools.queues.MessagePassingQueue;
 import org.jctools.queues.MpmcArrayQueue;
 import org.jctools.queues.MpscChunkedArrayQueue;
@@ -711,6 +712,30 @@ public abstract class BTraceRuntimeImplBase implements BTraceRuntime.Impl, Runti
       throw new RuntimeException(exp);
     }
   }
+
+  @Override
+  public final void writeJSON(Object obj, String fileName) {
+    try {
+      Path p = FileSystems.getDefault().getPath(resolveFileName(fileName));
+      try (BufferedWriter bw = Files.newBufferedWriter(p, StandardCharsets.UTF_8)) {
+        if (obj == null || bw == null) {
+          throw new NullPointerException();
+        }
+        XStream xstream = new XStream(new SunUnsafeReflectionProvider(), new JettisonMappedXmlDriver());
+//        XStream xstream = new XStream(new SunUnsafeReflectionProvider()); // XML
+        xstream.setMode(XStream.NO_REFERENCES); // JSON
+        xstream.ignoreUnknownElements();
+        xstream.addPermission(AnyTypePermission.ANY);
+        bw.write(xstream.toXML(obj));
+        bw.flush();
+      }
+    } catch (RuntimeException re) {
+      throw re;
+    } catch (Exception exp) {
+      throw new RuntimeException(exp);
+    }
+  }
+
 
   @Override
   public final void writeXML(Object obj, String fileName) {
