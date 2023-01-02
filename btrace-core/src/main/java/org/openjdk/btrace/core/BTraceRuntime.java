@@ -55,8 +55,6 @@ import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.json.JsonHierarchicalStreamDriver;
 import org.openjdk.btrace.core.aggregation.Aggregation;
 import org.openjdk.btrace.core.aggregation.AggregationFunction;
 import org.openjdk.btrace.core.aggregation.AggregationKey;
@@ -963,7 +961,11 @@ public final class BTraceRuntime {
   }
 
   static void serializeJSON(Object obj, String fileName) {
-    getRt().writeJSON(obj, fileName);
+    getRt().writeXsJSON(obj, fileName);
+  }
+
+  static void serializeXML(Object obj, String fileName) {
+    getRt().writeXsXML(obj, fileName);
   }
 
   static String toXML(Object obj) {
@@ -1242,7 +1244,9 @@ public final class BTraceRuntime {
 
     String toXML(Object obj);
 
-    void writeJSON(Object obj, String fileName);
+    void writeXsJSON(Object obj, String fileName);
+
+    void writeXsXML(Object obj, String fileName);
 
     void writeXML(Object obj, String fileName);
 

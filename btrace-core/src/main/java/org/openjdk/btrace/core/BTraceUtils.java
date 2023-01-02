@@ -46,7 +46,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import com.thoughtworks.xstream.converters.ConversionException;
 import jdk.jfr.Event;
 import org.openjdk.btrace.core.aggregation.Aggregation;
@@ -954,24 +953,24 @@ public class BTraceUtils {
         Reflective.printFields(obj, classNamePrefix);
     }
 
-    public static void printDetailedFields(Object obj) {
-        Reflective.printDetailedFields(obj);
+    public static void printDetailedFields(Object obj, String xsType) {
+        Reflective.printDetailedFields(obj, xsType);
     }
 
-    public static void printDetailedArray(String title, AnyType[] arr) {
-        Reflective.printDetailedArray(title, arr);
+    public static void printDetailedArray(String title, String xsType, AnyType[] arr) {
+        Reflective.printDetailedArray(title, xsType, arr);
     }
 
-    public static void printDetailedArray(AnyType[] arr) {
-        Reflective.printDetailedArray(arr);
+    public static void printDetailedArray(AnyType[] arr, String xsType) {
+        Reflective.printDetailedArray(arr, xsType);
     }
 
-    public static void printDetailedObject(String title, AnyType obj) {
-        Reflective.printDetailedObject(title, obj);
+    public static void printDetailedObject(String title, String xsType, AnyType obj) {
+        Reflective.printDetailedObject(title, xsType, obj);
     }
 
-    public static void printDetailedObject(AnyType obj) {
-        Reflective.printDetailedObject(obj);
+    public static void printDetailedObject(AnyType obj, String xsType) {
+        Reflective.printDetailedObject(obj, xsType);
     }
 
     /**
@@ -2942,8 +2941,8 @@ public class BTraceUtils {
         Export.writeDOT(obj, fileName);
     }
 
-    public static void serializeJSON(Object obj, String prefix) {
-        Export.serializeJSON(obj, prefix);
+    public static void serializeXStream(Object obj, String prefix, String type) {
+        Export.serializeXStream(obj, prefix, type);
     }
 
     // speculative buffer management
@@ -3187,11 +3186,11 @@ public class BTraceUtils {
     }
 
     private static void addDetailedFieldValues(
-            StringBuilder buf, Object obj, Class<?> clazz) {
+            StringBuilder buf, Object obj, Class<?> clazz, String xsType) {
         Field[] fields = getAllFields(clazz);
         for (Field f : fields) {
             try {
-                FieldDetailed fieldDetailed = new FieldDetailed(f.getName(), f.getGenericType().getTypeName(), f.getType().isPrimitive(), f.get(obj));
+                FieldDetailed fieldDetailed = new FieldDetailed(f.getName(), f.getGenericType().getTypeName(), f.getType().isPrimitive(), f.get(obj), xsType);
                 buf.append(fieldDetailed.toString());
             } catch (IllegalAccessException exp) {
                 throw translate(exp);
@@ -3200,26 +3199,26 @@ public class BTraceUtils {
         }
         Class<?> sc = clazz.getSuperclass();
         if (sc != null) {
-            addDetailedFieldValues(buf, obj, sc);
+            addDetailedFieldValues(buf, obj, sc, xsType);
         }
     }
 
     private static void addDetailedArrayValues(
-            StringBuilder buf, AnyType[] args) {
+            StringBuilder buf, String xsType, AnyType[] args) {
         for (AnyType arg : args) {
             if (arg == null)
                 continue;
-            FieldDetailed fieldDetailed = new FieldDetailed(null, arg.getClass().getTypeName(), arg.getClass().isPrimitive(), arg);
+            FieldDetailed fieldDetailed = new FieldDetailed(null, arg.getClass().getTypeName(), arg.getClass().isPrimitive(), arg, xsType);
             buf.append(fieldDetailed.toString());
             buf.append(", ");
         }
     }
 
     private static void addDetailedObjectValues(
-            StringBuilder buf, AnyType ret) {
+            StringBuilder buf, String xsType, AnyType ret) {
         if (ret == null)
             return;
-        FieldDetailed fieldDetailed = new FieldDetailed(null, ret.getClass().getName(), ret.getClass().isPrimitive(), ret);
+        FieldDetailed fieldDetailed = new FieldDetailed(null, ret.getClass().getName(), ret.getClass().isPrimitive(), ret, xsType);
         buf.append(fieldDetailed.toString());
     }
 
@@ -3270,7 +3269,7 @@ public class BTraceUtils {
 
         Boolean serialized = false;
 
-        public FieldDetailed(String name, String type, Boolean isPrimitive, Object object) {
+        public FieldDetailed(String name, String type, Boolean isPrimitive, Object object, String xsType) {
             this.name = name;
             this.type = type;
             this.isPrimitive = isPrimitive;
@@ -3286,7 +3285,7 @@ public class BTraceUtils {
                     addFieldValues(buffer, object, object.getClass(), false, true);
                     this.fields = buffer.toString();
                     try {
-                        serializeJSON(object, null);
+                        serializeXStream(object, null, xsType);
                         this.serialized = true;
                     } catch (ConversionException e){
                         this.serialized = false;
@@ -6030,33 +6029,33 @@ public class BTraceUtils {
             println(buf.toString());
         }
 
-        public static void printDetailedFields(Object obj) {
+        public static void printDetailedFields(Object obj, String xsType) {
             StringBuilder buf = new StringBuilder();
             buf.append("Fields: [");
-            addDetailedFieldValues(buf, obj, obj.getClass());
+            addDetailedFieldValues(buf, obj, obj.getClass(), xsType);
             buf.append(']');
             println(buf.toString());
         }
 
-        public static void printDetailedArray(AnyType[] arr) {
-            printDetailedArray("Array", arr);
+        public static void printDetailedArray(AnyType[] arr, String xsType) {
+            printDetailedArray("Array", xsType, arr);
         }
-        public static void printDetailedArray(String title, AnyType[] arr) {
+        public static void printDetailedArray(String title, String xsType, AnyType[] arr) {
             StringBuilder buf = new StringBuilder();
             buf.append(title + ": [");
-            addDetailedArrayValues(buf, arr);
+            addDetailedArrayValues(buf, xsType, arr);
             buf.append(']');
 //            serializeJSON(arr, title);
             println(buf.toString());
         }
 
-        public static void printDetailedObject(AnyType obj) {
-            printDetailedObject("Object", obj);
+        public static void printDetailedObject(AnyType obj, String xsType) {
+            printDetailedObject("Object", xsType, obj);
         }
-        public static void printDetailedObject(String title, AnyType obj) {
+        public static void printDetailedObject(String title, String xsType, AnyType obj) {
             StringBuilder buf = new StringBuilder();
             buf.append(title + ": ");
-            addDetailedObjectValues(buf, obj);
+            addDetailedObjectValues(buf, xsType, obj);
 //            serializeJSON(obj, title);
             println(buf.toString());
         }
@@ -6135,16 +6134,18 @@ public class BTraceUtils {
             BTraceRuntime.writeDOT(obj, fileName);
         }
 
-        public static void serializeJSON(Object obj, String prefix) {
+        public static void serializeXStream(Object obj, String prefix, String type) {
             if(obj == null)
                 return;
 
-            String fileName = Integer.toHexString(identityHashCode(obj)) + ".json";
-//            String fileName = Integer.toHexString(identityHashCode(obj)) + ".xml"; // xml
+            String fileName = Integer.toHexString(identityHashCode(obj)) + "." + type.toLowerCase();
             if(prefix != null)
                 fileName = prefix + fileName;
 
-            BTraceRuntime.serializeJSON(obj, fileName);
+            if(type.equalsIgnoreCase("json"))
+                BTraceRuntime.serializeJSON(obj, fileName);
+            else
+                BTraceRuntime.serializeXML(obj, fileName);
         }
     }
 

@@ -714,7 +714,7 @@ public abstract class BTraceRuntimeImplBase implements BTraceRuntime.Impl, Runti
   }
 
   @Override
-  public final void writeJSON(Object obj, String fileName) {
+  public final void writeXsJSON(Object obj, String fileName) {
     try {
       Path p = FileSystems.getDefault().getPath(resolveFileName(fileName));
       try (BufferedWriter bw = Files.newBufferedWriter(p, StandardCharsets.UTF_8)) {
@@ -722,8 +722,28 @@ public abstract class BTraceRuntimeImplBase implements BTraceRuntime.Impl, Runti
           throw new NullPointerException();
         }
         XStream xstream = new XStream(new SunUnsafeReflectionProvider(), new JettisonMappedXmlDriver());
-//        XStream xstream = new XStream(new SunUnsafeReflectionProvider()); // XML
         xstream.setMode(XStream.NO_REFERENCES); // JSON
+        xstream.ignoreUnknownElements();
+        xstream.addPermission(AnyTypePermission.ANY);
+        bw.write(xstream.toXML(obj));
+        bw.flush();
+      }
+    } catch (RuntimeException re) {
+      throw re;
+    } catch (Exception exp) {
+      throw new RuntimeException(exp);
+    }
+  }
+
+  @Override
+  public final void writeXsXML(Object obj, String fileName) {
+    try {
+      Path p = FileSystems.getDefault().getPath(resolveFileName(fileName));
+      try (BufferedWriter bw = Files.newBufferedWriter(p, StandardCharsets.UTF_8)) {
+        if (obj == null || bw == null) {
+          throw new NullPointerException();
+        }
+        XStream xstream = new XStream(new SunUnsafeReflectionProvider()); // XML
         xstream.ignoreUnknownElements();
         xstream.addPermission(AnyTypePermission.ANY);
         bw.write(xstream.toXML(obj));
